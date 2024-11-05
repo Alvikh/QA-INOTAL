@@ -1,0 +1,77 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      backend:
+        image: golang:1.20
+        ports:
+          - 8080:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+        env:
+          ENV: local
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: Admin
+          DB_NAME: test_db
+          DB_PORT: 5432
+          GIN_MODE: release
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install Playwright dependencies
+        run: |
+          npm install
+          npx playwright install-deps
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.20'
+
+      - name: Install Go dependencies
+        run: go mod download
+
+      - name: Run backend server
+        run: go run server.go &
+        env:
+          ENV: local
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: Admin
+          DB_NAME: test_db
+          DB_PORT: 5432
+          GIN_MODE: release
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for server..."
+          until curl -s http://localhost:8080; do
+            echo "Server is not ready yet..."
+            sleep 5
+          done
+        timeout-minutes: 1
+
+      - name: Run Playwright tests
+        run: npm run test:playwright
