@@ -12,25 +12,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      backend:
-        image: golang:1.20
-        ports:
-          - 8080:8080
-        options: >-
-          --health-cmd "curl -f http://localhost:8080 || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
-        env:
-          ENV: local
-          DB_HOST: localhost
-          DB_USER: postgres
-          DB_PASSWORD: Admin
-          DB_NAME: test_db
-          DB_PORT: 5432
-          GIN_MODE: release
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -48,21 +29,23 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.20'
+          go-version: '1.23.0'
 
       - name: Install Go dependencies
         run: go mod download
 
       - name: Run backend server
-        run: go run server.go &
+        run: |
+          nohup go run server.go &
         env:
+          DB: host=localhost user=postgres password=Admin dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai
+          SCHEMA: akses_pengguna
+          GIN_MODE: debug
           ENV: local
-          DB_HOST: localhost
-          DB_USER: postgres
-          DB_PASSWORD: Admin
-          DB_NAME: test_db
-          DB_PORT: 5432
-          GIN_MODE: release
+          LOG_FILE: off
+          AUTO_MIGRATE: on
+          PORT: 8080
+          ALLOW_ORIGIN: https://auth.rsudlampung.app
 
       - name: Wait for server to be ready
         run: |
