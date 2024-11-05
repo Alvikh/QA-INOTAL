@@ -12,8 +12,8 @@ type AplikasiService interface {
 	Update(Aplikasi) error
 	Delete(Aplikasi) error
 	FindAll() []Aplikasi
-	FindByKd(kd int) Aplikasi
-	FindByLimit(offset int, limit int) []Aplikasi
+	FindByKd(kd string) (Aplikasi, error)
+	FindByLimit(limit int) ([]Aplikasi, error)
 }
 
 type aplikasiService struct {
@@ -36,6 +36,7 @@ func NewAplikasiService(db *gorm.DB) AplikasiService {
 	}
 }
 
+// Create creates a new aplikasi record
 func (service *aplikasiService) Create(aplikasi Aplikasi) (Aplikasi, error) {
 	err := service.conn.Create(&aplikasi).Error
 	if err != nil {
@@ -44,6 +45,7 @@ func (service *aplikasiService) Create(aplikasi Aplikasi) (Aplikasi, error) {
 	return aplikasi, nil
 }
 
+// Update updates an existing aplikasi record
 func (service *aplikasiService) Update(aplikasi Aplikasi) error {
 	err := service.conn.Save(&aplikasi).Error
 	if err != nil {
@@ -52,6 +54,7 @@ func (service *aplikasiService) Update(aplikasi Aplikasi) error {
 	return nil
 }
 
+// Delete deletes an aplikasi record
 func (service *aplikasiService) Delete(aplikasi Aplikasi) error {
 	err := service.conn.Delete(&aplikasi).Error
 	if err != nil {
@@ -60,20 +63,29 @@ func (service *aplikasiService) Delete(aplikasi Aplikasi) error {
 	return nil
 }
 
+// FindAll returns all aplikasi records
 func (service *aplikasiService) FindAll() []Aplikasi {
 	var aplikasis []Aplikasi
 	service.conn.Find(&aplikasis)
 	return aplikasis
 }
 
-func (service *aplikasiService) FindByKd(kd int) Aplikasi {
+// FindByKd returns an aplikasi by kd
+func (service *aplikasiService) FindByKd(kd string) (Aplikasi, error) {
 	var aplikasi Aplikasi
-	service.conn.Where("kd=?", kd).Find(&aplikasi)
-	return aplikasi
+	err := service.conn.Where("kd = ?", kd).First(&aplikasi).Error
+	if err != nil {
+		return Aplikasi{}, err
+	}
+	return aplikasi, nil
 }
 
-func (service *aplikasiService) FindByLimit(offset int, limit int) []Aplikasi {
+// FindByLimit returns a limited number of aplikasi records
+func (service *aplikasiService) FindByLimit(limit int) ([]Aplikasi, error) {
 	var aplikasis []Aplikasi
-	service.conn.Offset(offset).Limit(limit).Find(&aplikasis)
-	return aplikasis
+	err := service.conn.Limit(limit).Find(&aplikasis).Error
+	if err != nil {
+		return nil, err
+	}
+	return aplikasis, nil
 }
