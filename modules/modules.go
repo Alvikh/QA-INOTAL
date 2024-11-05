@@ -3,7 +3,7 @@ package modules
 import (
 	"rsudlampung/helper"
 
-	// aplikasi "rsudlampung/modules/akses_pengguna/aplikasi"
+	aplikasi "rsudlampung/modules/akses_pengguna/aplikasi"
 	// fitur "rsudlampung/modules/akses_pengguna/fitur"
 	// group "rsudlampung/modules/akses_pengguna/group"
 	// modul "rsudlampung/modules/akses_pengguna/modul"
@@ -32,10 +32,10 @@ func NewVersion(configEnv helper.Config, mainServer *gin.Engine) Versions {
 }
 
 func (s *versions) Run() {
-	// apiSistemRoutes := s.mainServer.Group("/sistem")
-	// db_aksesPengguna := helper.OpenDB(s.configEnv.DB, s.configEnv.SCHEMA, "v010")
+	apiSistemRoutes := s.mainServer.Group("/sistem")
+	db_aksesPengguna := helper.OpenDB(s.configEnv.DB, s.configEnv.SCHEMA, "v010")
 
-	// aplikasi := aplikasi.NewAplikasiServer(apiSistemRoutes, db_aksesPengguna, "v010")
-	// aplikasi.Init()
+	aplikasi := aplikasi.NewAplikasiServer(apiSistemRoutes, db_aksesPengguna, "v010")
+	aplikasi.Init()
 
 }
