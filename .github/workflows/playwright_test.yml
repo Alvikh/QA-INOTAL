@@ -25,6 +25,7 @@ jobs:
         run: |
           npm install
           npx playwright install-deps
+          chmod +x ./node_modules/.bin/playwright 
 
       - name: Set up Go
         uses: actions/setup-go@v3
