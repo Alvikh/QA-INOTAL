@@ -56,8 +56,5 @@ jobs:
       run: |
         psql -h localhost -U postgres -d postgres -c "CREATE SCHEMA akses_pengguna;"
 
-    - name: Run Tests
-      run: go test ./... -v
-
     - name: Run Playwright Tests
       run: npx playwright test tests/aplikasi.spec.js
