@@ -18,11 +18,11 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_USER: your_user
-          POSTGRES_PASSWORD: your_password
-          POSTGRES_DB: your_database
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: Admin
+          POSTGRES_DB: postgres
         options: >-
-          --health-cmd "pg_isready -U your_user"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -40,10 +40,16 @@ jobs:
       run: go mod tidy
 
     - name: Install Playwright
-      run: go run github.com/playwright-community/playwright-go/install
+      run: go get -d github.com/playwright-community/playwright-go && go run github.com/playwright-community/playwright-go/cmd/playwright install
+
+    - name: Create Database Schema
+      env:
+        PGPASSWORD: Admin
+      run: |
+        psql -h localhost -U postgres -d postgres -c "CREATE SCHEMA akses_pengguna;"
 
     - name: Run Tests
       run: go test ./... -v
 
     - name: Run Playwright Tests
-      run: go run your_playwright_test_file.go  # Change to your Playwright test file
+      run: npx playwright test tests/aplikasi.spec.js
