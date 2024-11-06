@@ -1,10 +1,9 @@
 name: Playwright Tests
 on:
   push:
-    branches: [ main ]
+    branches: [ main]
   pull_request:
-    branches: [ main ]
-
+    branches: [ main]
 jobs:
   test:
     timeout-minutes: 60
@@ -14,30 +13,12 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
-
-    # Langkah untuk setup Go jika backend menggunakan Go
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.23'  # Pastikan sesuai dengan versi Go yang digunakan
-
     - name: Install dependencies
       run: npm ci
-
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
-
-    # Langkah untuk memulai server backend
-    - name: Start backend server
-      run: go run .
-      # Tunggu beberapa detik agar server siap
-    - name: Wait for server to be ready
-      run: sleep 10
-
-    # Jalankan tes Playwright setelah server siap
     - name: Run Playwright tests
       run: npx playwright test
-
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
