@@ -19,10 +19,16 @@ test.describe('Aplikasi API Tests', () => {
         "url_api": "http://api.example.com"
       },
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`
+        'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
+        'Content-Type': 'application/json'  // Menambahkan Content-Type JSON
       }
     });
 
+    // Debug response jika terjadi kesalahan
+    console.log("Response status:", response.status());
+    console.log("Response text:", await response.text());
+
+    // Periksa status harus 201 jika berhasil
     expect(response.status()).toBe(201);
   });
 
@@ -37,10 +43,16 @@ test.describe('Aplikasi API Tests', () => {
         "url_api": "http://api.example.com"
       },
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`
+        'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
+        'Content-Type': 'application/json'  // Menambahkan Content-Type JSON
       }
     });
 
+    // Debug response jika terjadi kesalahan
+    console.log("Response status:", response.status());
+    console.log("Response text:", await response.text());
+
+    // Periksa status harus 400 jika gagal
     expect(response.status()).toBe(400);
   });
 });
