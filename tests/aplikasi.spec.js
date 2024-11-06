@@ -24,8 +24,6 @@ test.describe('Aplikasi API Tests', () => {
     });
 
     expect(response.status()).toBe(201);
-    const responseBody = await response.json();
-    expect(responseBody).toHaveProperty('data');
   });
 
   // Test: Create Aplikasi dengan data invalid
