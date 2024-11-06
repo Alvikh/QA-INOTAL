@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 // URL dasar API
-const BASE_URL = 'http://localhost:8080/sistem/v010/aplikasi';
+const BASE_URL = 'http://127.0.0.1:8080/sistem/v010/aplikasi';
 
 // Credentials for Basic Auth
 const USERNAME = 'user-rsud';
