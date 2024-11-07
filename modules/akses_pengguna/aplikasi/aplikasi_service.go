@@ -9,13 +9,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// AplikasiService interface with updated method signature
 type AplikasiService interface {
-	Create(Aplikasi) (Aplikasi, error)
-	Update(Aplikasi) error
-	Delete(kd int16) error
 	FindAll() ([]Aplikasi, error)
 	FindByKd(kd int16) (Aplikasi, error)
-	FindByLimit(limit int) ([]Aplikasi, error)
+	FindByLimit(limit, offset int) ([]Aplikasi, error)
+	Create(aplikasi Aplikasi) (Aplikasi, error)
+	Update(aplikasi Aplikasi) error
+	Delete(kd int16) error
 }
 
 type aplikasiService struct {
@@ -42,12 +43,9 @@ func NewAplikasiService(db *gorm.DB) AplikasiService {
 
 // Create creates a new aplikasi record
 func (service *aplikasiService) Create(aplikasi Aplikasi) (Aplikasi, error) {
-	// Validasi input jika diperlukan
 	if aplikasi.Nama == "" || aplikasi.Label == "" || aplikasi.Logo == "" || aplikasi.UrlFE == "" || aplikasi.UrlAPI == "" {
 		return Aplikasi{}, errors.New("semua field wajib diisi")
 	}
-
-	// Set CreatedAt dan UpdatedAt ke waktu saat ini
 	aplikasi.CreatedAt = time.Now()
 	aplikasi.UpdatedAt = time.Now()
 
@@ -59,14 +57,11 @@ func (service *aplikasiService) Create(aplikasi Aplikasi) (Aplikasi, error) {
 
 // Update updates an existing aplikasi record
 func (service *aplikasiService) Update(aplikasi Aplikasi) error {
-	// Validasi input jika diperlukan
 	if aplikasi.Nama == "" || aplikasi.Label == "" || aplikasi.Logo == "" || aplikasi.UrlFE == "" || aplikasi.UrlAPI == "" {
 		return errors.New("semua field wajib diisi")
 	}
 
-	// Jalankan update dalam transaksi untuk menjaga integritas data
 	return service.conn.Transaction(func(tx *gorm.DB) error {
-		// Cek keberadaan aplikasi sebelum update
 		var existingAplikasi Aplikasi
 		if err := tx.First(&existingAplikasi, "kd = ?", aplikasi.Kd).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -75,7 +70,6 @@ func (service *aplikasiService) Update(aplikasi Aplikasi) error {
 			return err
 		}
 
-		// Lakukan update dengan mengabaikan field CreatedAt
 		aplikasi.UpdatedAt = time.Now()
 		if err := tx.Model(&existingAplikasi).Omit("created_at").Updates(aplikasi).Error; err != nil {
 			return err
@@ -87,7 +81,6 @@ func (service *aplikasiService) Update(aplikasi Aplikasi) error {
 
 // Delete deletes an aplikasi record
 func (service *aplikasiService) Delete(kd int16) error {
-	// Gunakan transaksi untuk delete
 	return service.conn.Transaction(func(tx *gorm.DB) error {
 		var aplikasi Aplikasi
 		if err := tx.First(&aplikasi, "kd = ?", kd).Error; err != nil {
@@ -97,7 +90,6 @@ func (service *aplikasiService) Delete(kd int16) error {
 			return err
 		}
 
-		// Hapus aplikasi
 		if err := tx.Delete(&aplikasi).Error; err != nil {
 			return err
 		}
@@ -126,11 +118,12 @@ func (service *aplikasiService) FindByKd(kd int16) (Aplikasi, error) {
 	return aplikasi, nil
 }
 
-// FindByLimit returns a limited number of aplikasi records
-func (service *aplikasiService) FindByLimit(limit int) ([]Aplikasi, error) {
-	var aplikasis []Aplikasi
-	if err := service.conn.Limit(limit).Find(&aplikasis).Error; err != nil {
+// FindByLimit retrieves aplikasi records with offset and limit
+func (service *aplikasiService) FindByLimit(limit, offset int) ([]Aplikasi, error) {
+	var aplikasiList []Aplikasi
+	if err := service.conn.Offset(offset).Limit(limit).Find(&aplikasiList).Error; err != nil {
 		return nil, err
 	}
-	return aplikasis, nil
+	return aplikasiList, nil
 }
+

@@ -1,8 +1,10 @@
 package aplikasi
 
 import (
+	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,18 @@ type AplikasiController interface {
 type controllerAplikasi struct {
 	service AplikasiService
 }
+
+// Constants for error messages
+const (
+	ErrInvalidInput     = "Invalid input data"
+	ErrAplikasiNotFound = "Aplikasi not found"
+	ErrFailedToCreate   = "Failed to create aplikasi"
+	ErrInvalidKd        = "Invalid kd parameter"
+	ErrInvalidLimit     = "Invalid limit parameter"
+	ErrInvalidOffset    = "Invalid offset parameter"
+	ErrInvalidRange     = "Invalid kd range"
+	ErrSQLInjection     = "Invalid input data (SQL Injection detected)"
+)
 
 // NewAplikasiController creates a new instance of AplikasiController
 func NewAplikasiController(service AplikasiService) AplikasiController {
@@ -43,13 +57,19 @@ func (c *controllerAplikasi) FindByKd(ctx *gin.Context) {
 	kdParam := ctx.Param("kd")
 	kd, err := strconv.ParseInt(kdParam, 10, 16)
 	if err != nil {
-		c.respondWithError(ctx, http.StatusBadRequest, "Invalid kd parameter")
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidKd)
+		return
+	}
+
+	// Validate kd range
+	if kd < math.MinInt16 || kd > math.MaxInt16 {
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidRange)
 		return
 	}
 
 	aplikasi, err := c.service.FindByKd(int16(kd))
 	if err != nil {
-		c.respondWithError(ctx, http.StatusNotFound, "Aplikasi not found")
+		c.respondWithError(ctx, http.StatusNotFound, ErrAplikasiNotFound)
 		return
 	}
 
@@ -59,78 +79,117 @@ func (c *controllerAplikasi) FindByKd(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"data": aplikasi})
 }
 
-// FindByLimit returns a limited number of aplikasi records based on the limit parameter
+// FindByLimit returns a limited number of aplikasi records based on the limit and offset parameters
 func (c *controllerAplikasi) FindByLimit(ctx *gin.Context) {
-	limitParam := ctx.DefaultQuery("limit", "10")
-	limit, err := strconv.Atoi(limitParam)
+	limit, err := strconv.Atoi(ctx.DefaultQuery("limit", "10"))
 	if err != nil || limit <= 0 {
-		c.respondWithError(ctx, http.StatusBadRequest, "Limit must be a positive integer")
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidLimit)
 		return
 	}
 
-	aplikasis, err := c.service.FindByLimit(limit)
+	offset, err := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
+	if err != nil || offset < 0 {
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidOffset)
+		return
+	}
+
+	aplikasis, err := c.service.FindByLimit(limit, offset)
 	if err != nil {
 		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to retrieve aplikasi data")
 		return
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{"data": aplikasis})
 }
 
-// Create creates a new aplikasi
+// sanitizeInput sanitizes the input string to prevent SQL injection
+func sanitizeInput(input string) string {
+	badWords := []string{"DROP", "DELETE", "INSERT", "UPDATE", "TRUNCATE", "ALTER", "CREATE", "--", ";", "/*", "*/"}
+	for _, word := range badWords {
+		if strings.Contains(strings.ToUpper(input), word) {
+			return ""
+		}
+	}
+	replacer := strings.NewReplacer("'", "", "\"", "", ";", "", "--", "")
+	return replacer.Replace(input)
+}
+
+// Create a new aplikasi record
 func (c *controllerAplikasi) Create(ctx *gin.Context) {
 	var aplikasi Aplikasi
 	if err := ctx.ShouldBindJSON(&aplikasi); err != nil {
-		c.respondWithError(ctx, http.StatusBadRequest, "Invalid input data")
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidInput)
 		return
 	}
 
-	// Validate required fields
 	if aplikasi.Nama == "" || aplikasi.Label == "" || aplikasi.Logo == "" || aplikasi.UrlFE == "" || aplikasi.UrlAPI == "" {
 		c.respondWithError(ctx, http.StatusBadRequest, "All fields are required")
 		return
 	}
 
-	// Set CreatedAt and UpdatedAt to the current time
+	// Sanitize input to prevent SQL injection
+	aplikasi.Nama = sanitizeInput(aplikasi.Nama)
+	aplikasi.Label = sanitizeInput(aplikasi.Label)
+	aplikasi.Logo = sanitizeInput(aplikasi.Logo)
+	aplikasi.UrlFE = sanitizeInput(aplikasi.UrlFE)
+	aplikasi.UrlAPI = sanitizeInput(aplikasi.UrlAPI)
+
+	if aplikasi.Nama == "" || aplikasi.Label == "" || aplikasi.Logo == "" || aplikasi.UrlFE == "" || aplikasi.UrlAPI == "" {
+		c.respondWithError(ctx, http.StatusBadRequest, ErrSQLInjection)
+		return
+	}
+
 	aplikasi.CreatedAt = time.Now()
 	aplikasi.UpdatedAt = time.Now()
 
 	result, err := c.service.Create(aplikasi)
 	if err != nil {
-		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to create aplikasi")
+		c.respondWithError(ctx, http.StatusInternalServerError, ErrFailedToCreate)
 		return
 	}
+
 	// Exclude CreatedAt and UpdatedAt from the response
 	result.CreatedAt = time.Time{}
 	result.UpdatedAt = time.Time{}
 	ctx.JSON(http.StatusCreated, gin.H{"data": result})
 }
 
-// Update updates an existing aplikasi
+// Update an existing aplikasi record
 func (c *controllerAplikasi) Update(ctx *gin.Context) {
 	var aplikasi Aplikasi
 	if err := ctx.ShouldBindJSON(&aplikasi); err != nil {
-		c.respondWithError(ctx, http.StatusBadRequest, "Invalid input data")
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidInput)
 		return
 	}
 
 	kdParam := ctx.Param("kd")
 	kd, err := strconv.ParseInt(kdParam, 10, 16)
 	if err != nil {
-		c.respondWithError(ctx, http.StatusBadRequest, "Invalid kd parameter")
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidKd)
 		return
 	}
 
-	// Set kd from path parameter
+	// Validate kd range
+	if kd < math.MinInt16 || kd > math.MaxInt16 {
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidRange)
+		return
+	}
+
 	aplikasi.Kd = int16(kd)
 
-	// Find existing aplikasi by kd
 	_, err = c.service.FindByKd(aplikasi.Kd)
 	if err != nil {
-		c.respondWithError(ctx, http.StatusNotFound, "Aplikasi not found")
+		c.respondWithError(ctx, http.StatusNotFound, ErrAplikasiNotFound)
 		return
 	}
 
-	// Set UpdatedAt to the current time
+	// Sanitize input to prevent SQL injection
+	aplikasi.Nama = sanitizeInput(aplikasi.Nama)
+	aplikasi.Label = sanitizeInput(aplikasi.Label)
+	aplikasi.Logo = sanitizeInput(aplikasi.Logo)
+	aplikasi.UrlFE = sanitizeInput(aplikasi.UrlFE)
+	aplikasi.UrlAPI = sanitizeInput(aplikasi.UrlAPI)
+
 	aplikasi.UpdatedAt = time.Now()
 
 	err = c.service.Update(aplikasi)
@@ -145,23 +204,27 @@ func (c *controllerAplikasi) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Aplikasi updated successfully", "data": aplikasi})
 }
 
-// Delete deletes an aplikasi by kd
+// Delete an aplikasi record by kd
 func (c *controllerAplikasi) Delete(ctx *gin.Context) {
 	kdParam := ctx.Param("kd")
 	kd, err := strconv.ParseInt(kdParam, 10, 16)
 	if err != nil {
-		c.respondWithError(ctx, http.StatusBadRequest, "Invalid kd parameter")
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidKd)
 		return
 	}
 
-	// Find existing aplikasi by kd
+	// Validate kd range
+	if kd < math.MinInt16 || kd > math.MaxInt16 {
+		c.respondWithError(ctx, http.StatusBadRequest, ErrInvalidRange)
+		return
+	}
+
 	_, err = c.service.FindByKd(int16(kd))
 	if err != nil {
-		c.respondWithError(ctx, http.StatusNotFound, "Aplikasi not found")
+		c.respondWithError(ctx, http.StatusNotFound, ErrAplikasiNotFound)
 		return
 	}
 
-	// Pass only the kd to the Delete method, not the Aplikasi struct
 	err = c.service.Delete(int16(kd))
 	if err != nil {
 		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to delete aplikasi")
