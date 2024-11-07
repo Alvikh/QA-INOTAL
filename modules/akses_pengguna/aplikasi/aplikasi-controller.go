@@ -1,21 +1,20 @@
 package aplikasi
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type AplikasiController interface {
-	FindAll() []Aplikasi
-	FindByKd(ctx *gin.Context) (Aplikasi, error)
-	FindByLimit(ctx *gin.Context) ([]Aplikasi, error)
-	Create(ctx *gin.Context) (Aplikasi, error)
-	Update(ctx *gin.Context) error
-	Delete(ctx *gin.Context) error
+	FindAll(ctx *gin.Context)
+	FindByKd(ctx *gin.Context)
+	FindByLimit(ctx *gin.Context)
+	Create(ctx *gin.Context)
+	Update(ctx *gin.Context)
+	Delete(ctx *gin.Context)
 }
 
 type controllerAplikasi struct {
@@ -23,108 +22,156 @@ type controllerAplikasi struct {
 }
 
 // NewAplikasiController creates a new instance of AplikasiController
-func NewAplikasiController(db *gorm.DB) AplikasiController {
+func NewAplikasiController(service AplikasiService) AplikasiController {
 	return &controllerAplikasi{
-		service: NewAplikasiService(db),
+		service: service,
 	}
 }
 
-// FindAll returns all aplikasi records
-func (c *controllerAplikasi) FindAll() []Aplikasi {
-	return c.service.FindAll()
+// FindAll returns all aplikasi records or an error if one occurs
+func (c *controllerAplikasi) FindAll(ctx *gin.Context) {
+	aplikasis, err := c.service.FindAll()
+	if err != nil {
+		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to retrieve aplikasi data")
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"data": aplikasis})
 }
 
 // FindByKd returns an aplikasi by kd
-func (c *controllerAplikasi) FindByKd(ctx *gin.Context) (Aplikasi, error) {
-	kd := ctx.Param("kd")
-	aplikasi, err := c.service.FindByKd(kd)
+func (c *controllerAplikasi) FindByKd(ctx *gin.Context) {
+	kdParam := ctx.Param("kd")
+	kd, err := strconv.ParseInt(kdParam, 10, 16)
 	if err != nil {
-		return Aplikasi{}, errors.New("Aplikasi tidak ditemukan")
+		c.respondWithError(ctx, http.StatusBadRequest, "Invalid kd parameter")
+		return
 	}
-	return aplikasi, nil
+
+	aplikasi, err := c.service.FindByKd(int16(kd))
+	if err != nil {
+		c.respondWithError(ctx, http.StatusNotFound, "Aplikasi not found")
+		return
+	}
+
+	// Exclude CreatedAt and UpdatedAt from the response
+	aplikasi.CreatedAt = time.Time{}
+	aplikasi.UpdatedAt = time.Time{}
+	ctx.JSON(http.StatusOK, gin.H{"data": aplikasi})
 }
 
 // FindByLimit returns a limited number of aplikasi records based on the limit parameter
-func (c *controllerAplikasi) FindByLimit(ctx *gin.Context) ([]Aplikasi, error) {
-	limitParam := ctx.Query("limit")
+func (c *controllerAplikasi) FindByLimit(ctx *gin.Context) {
+	limitParam := ctx.DefaultQuery("limit", "10")
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit <= 0 {
-		return nil, errors.New("limit harus berupa angka positif")
+		c.respondWithError(ctx, http.StatusBadRequest, "Limit must be a positive integer")
+		return
 	}
 
 	aplikasis, err := c.service.FindByLimit(limit)
 	if err != nil {
-		return nil, err
+		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to retrieve aplikasi data")
+		return
 	}
-	return aplikasis, nil
+	ctx.JSON(http.StatusOK, gin.H{"data": aplikasis})
 }
 
 // Create creates a new aplikasi
-func (c *controllerAplikasi) Create(ctx *gin.Context) (Aplikasi, error) {
+func (c *controllerAplikasi) Create(ctx *gin.Context) {
 	var aplikasi Aplikasi
 	if err := ctx.ShouldBindJSON(&aplikasi); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data."}) // Return if binding fails
-		return Aplikasi{}, err
+		c.respondWithError(ctx, http.StatusBadRequest, "Invalid input data")
+		return
 	}
 
-	// Validate the required fields
+	// Validate required fields
 	if aplikasi.Nama == "" || aplikasi.Label == "" || aplikasi.Logo == "" || aplikasi.UrlFE == "" || aplikasi.UrlAPI == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Semua field harus diisi."}) // All fields must be filled
-		return Aplikasi{}, errors.New("semua field harus diisi")
+		c.respondWithError(ctx, http.StatusBadRequest, "All fields are required")
+		return
 	}
+
+	// Set CreatedAt and UpdatedAt to the current time
+	aplikasi.CreatedAt = time.Now()
+	aplikasi.UpdatedAt = time.Now()
 
 	result, err := c.service.Create(aplikasi)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create aplikasi."}) // Handle errors during creation
-		return Aplikasi{}, err
+		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to create aplikasi")
+		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"data": result}) // Return the created aplikasi
-	return result, nil
+	// Exclude CreatedAt and UpdatedAt from the response
+	result.CreatedAt = time.Time{}
+	result.UpdatedAt = time.Time{}
+	ctx.JSON(http.StatusCreated, gin.H{"data": result})
 }
 
 // Update updates an existing aplikasi
-func (c *controllerAplikasi) Update(ctx *gin.Context) error {
-    var aplikasi Aplikasi
+func (c *controllerAplikasi) Update(ctx *gin.Context) {
+	var aplikasi Aplikasi
+	if err := ctx.ShouldBindJSON(&aplikasi); err != nil {
+		c.respondWithError(ctx, http.StatusBadRequest, "Invalid input data")
+		return
+	}
 
-    // Bind the incoming JSON to the Aplikasi struct
-    if err := ctx.ShouldBindJSON(&aplikasi); err != nil {
-        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data."})
-        return err
-    }
+	kdParam := ctx.Param("kd")
+	kd, err := strconv.ParseInt(kdParam, 10, 16)
+	if err != nil {
+		c.respondWithError(ctx, http.StatusBadRequest, "Invalid kd parameter")
+		return
+	}
 
-    // Validate the required fields
-    if aplikasi.Nama == "" || aplikasi.Label == "" || aplikasi.Logo == "" || aplikasi.UrlFE == "" || aplikasi.UrlAPI == "" {
-        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Semua field harus diisi."})
-        return errors.New("semua field harus diisi")
-    }
+	// Set kd from path parameter
+	aplikasi.Kd = int16(kd)
 
-    // Call the service to update the aplikasi
-    err := c.service.Update(aplikasi)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update aplikasi."})
-        return err
-    }
+	// Find existing aplikasi by kd
+	_, err = c.service.FindByKd(aplikasi.Kd)
+	if err != nil {
+		c.respondWithError(ctx, http.StatusNotFound, "Aplikasi not found")
+		return
+	}
 
-    // Ensure that you return a success message
-    ctx.JSON(http.StatusOK, gin.H{"message": "Aplikasi updated successfully."})
-    return nil
+	// Set UpdatedAt to the current time
+	aplikasi.UpdatedAt = time.Now()
+
+	err = c.service.Update(aplikasi)
+	if err != nil {
+		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to update aplikasi")
+		return
+	}
+
+	// Exclude CreatedAt and UpdatedAt from the response
+	aplikasi.CreatedAt = time.Time{}
+	aplikasi.UpdatedAt = time.Time{}
+	ctx.JSON(http.StatusOK, gin.H{"message": "Aplikasi updated successfully", "data": aplikasi})
 }
 
 // Delete deletes an aplikasi by kd
-func (c *controllerAplikasi) Delete(ctx *gin.Context) error {
-	kd := ctx.Param("kd")
-
-	aplikasi, err := c.service.FindByKd(kd)
-	if err != nil || aplikasi.Kd == 0 {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Aplikasi tidak ditemukan."}) // Return error if not found
-		return errors.New("Aplikasi tidak ditemukan") // Also return an error
-	}
-
-	err = c.service.Delete(aplikasi)
+func (c *controllerAplikasi) Delete(ctx *gin.Context) {
+	kdParam := ctx.Param("kd")
+	kd, err := strconv.ParseInt(kdParam, 10, 16)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete aplikasi."}) // Handle errors during deletion
-		return err // Return the error
+		c.respondWithError(ctx, http.StatusBadRequest, "Invalid kd parameter")
+		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "Aplikasi deleted successfully."}) // Return success message
-	return nil // Return nil if successful
+
+	// Find existing aplikasi by kd
+	_, err = c.service.FindByKd(int16(kd))
+	if err != nil {
+		c.respondWithError(ctx, http.StatusNotFound, "Aplikasi not found")
+		return
+	}
+
+	// Pass only the kd to the Delete method, not the Aplikasi struct
+	err = c.service.Delete(int16(kd))
+	if err != nil {
+		c.respondWithError(ctx, http.StatusInternalServerError, "Failed to delete aplikasi")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Aplikasi deleted successfully"})
+}
+
+// respondWithError sends a consistent error response
+func (c *controllerAplikasi) respondWithError(ctx *gin.Context, statusCode int, message string) {
+	ctx.JSON(statusCode, gin.H{"error": message})
 }
