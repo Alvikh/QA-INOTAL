@@ -4,9 +4,9 @@
   "description": "Playwright github action",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test",
-    "start": "playwright test"
-  },
+  "test": "playwright test",
+  "start-backend": "node server.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
