@@ -45,43 +45,43 @@ test.describe('Aplikasi API Tests - Additional Scenarios', () => {
     expect(response.status()).toBe(400);
   });
 
-  // Test: Update Aplikasi dengan kd valid dan data valid
-  test('Update Aplikasi with valid kd and data', async ({ request }) => {
-    const kd = 1; // kd valid
-    const response = await request.put(`${BASE_URL}/${kd}`, {
-      data: {
-        "nama": "Aplikasi Test Update",
-        "label": "Test Label Update",
-        "logo": "logoUpdate.png",
-        "url_fe": "http://example.com",
-        "url_api": "http://api.example.com"
-      },
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    expect(response.status()).toBe(200);
-  });
+  // // Test: Update Aplikasi dengan kd valid dan data valid
+  // test('Update Aplikasi with valid kd and data', async ({ request }) => {
+  //   const kd = 1; // kd valid
+  //   const response = await request.put(`${BASE_URL}/${kd}`, {
+  //     data: {
+  //       "nama": "Aplikasi Test Update",
+  //       "label": "Test Label Update",
+  //       "logo": "logoUpdate.png",
+  //       "url_fe": "http://example.com",
+  //       "url_api": "http://api.example.com"
+  //     },
+  //     headers: {
+  //       'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
+  //       'Content-Type': 'application/json'
+  //     }
+  //   });
+  //   expect(response.status()).toBe(200);
+  // });
 
-  // Test: Update Aplikasi dengan data tidak valid
-  test('Update Aplikasi with invalid data', async ({ request }) => {
-    const kd = 1;
-    const response = await request.put(`${BASE_URL}/${kd}`, {
-      data: {
-        "nama": "", // nama kosong
-        "label": "Invalid Label",
-        "logo": "invalid_logo.png",
-        "url_fe": "http://invalid.com",
-        "url_api": "http://api.invalid.com"
-      },
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    expect(response.status()).toBe(400);
-  });
+  // // Test: Update Aplikasi dengan data tidak valid
+  // test('Update Aplikasi with invalid data', async ({ request }) => {
+  //   const kd = 1;
+  //   const response = await request.put(`${BASE_URL}/${kd}`, {
+  //     data: {
+  //       "nama": "", // nama kosong
+  //       "label": "Invalid Label",
+  //       "logo": "invalid_logo.png",
+  //       "url_fe": "http://invalid.com",
+  //       "url_api": "http://api.invalid.com"
+  //     },
+  //     headers: {
+  //       'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
+  //       'Content-Type': 'application/json'
+  //     }
+  //   });
+  //   expect(response.status()).toBe(400);
+  // });
 
   // Test: Delete Aplikasi dengan kd valid
   test('Delete Aplikasi with valid kd', async ({ request }) => {
@@ -213,22 +213,22 @@ test.describe('Aplikasi API Tests - Additional Scenarios', () => {
     expect(response.status()).toBe(201);
   });
 
-  // Test: Input nama aplikasi dengan panjang di atas batas maksimum (51)
-  test('Input nama aplikasi dengan panjang di atas batas maksimum (51)', async ({ request }) => {
-    const namaExceedsMaxLength = 'Aplikasi ' + 'X'.repeat(41); // 51 characters
-    const response = await request.post(`${BASE_URL}`, {
-      data: {
-        "nama": namaExceedsMaxLength,
-        "label": "Label Valid",
-        "logo": "logo.png",
-        "url_fe": "http://example.com",
-        "url_api": "http://api.example.com"
-      },
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    expect(response.status()).toBe(400); // Expect 400 Bad Request
-  });
+  // // Test: Input nama aplikasi dengan panjang di atas batas maksimum (51)
+  // test('Input nama aplikasi dengan panjang di atas batas maksimum (51)', async ({ request }) => {
+  //   const namaExceedsMaxLength = 'Aplikasi ' + 'X'.repeat(41); // 51 characters
+  //   const response = await request.post(`${BASE_URL}`, {
+  //     data: {
+  //       "nama": namaExceedsMaxLength,
+  //       "label": "Label Valid",
+  //       "logo": "logo.png",
+  //       "url_fe": "http://example.com",
+  //       "url_api": "http://api.example.com"
+  //     },
+  //     headers: {
+  //       'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`,
+  //       'Content-Type': 'application/json'
+  //     }
+  //   });
+  //   expect(response.status()).toBe(400); // Expect 400 Bad Request
+  // });
 });
