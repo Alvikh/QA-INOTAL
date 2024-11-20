@@ -12,7 +12,8 @@
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.49.0",
-    "@types/node": "^22.9.0"
+    "@types/node": "^22.9.0",
+    "wait-on": "^8.0.1"
   },
   "directories": {
     "test": "tests"
