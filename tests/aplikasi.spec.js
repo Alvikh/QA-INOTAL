@@ -85,7 +85,7 @@ test.describe('Aplikasi API Tests - Additional Scenarios', () => {
 
   // Test: Delete Aplikasi dengan kd valid
   test('Delete Aplikasi with valid kd', async ({ request }) => {
-    const kd = 1;
+    const kd = 10;
     const response = await request.delete(`${BASE_URL}/${kd}`, {
       headers: {
         'Authorization': `Basic ${Buffer.from(`${USERNAME}:${PASSWORD}`).toString('base64')}`
