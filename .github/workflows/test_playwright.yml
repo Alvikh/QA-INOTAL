@@ -1,3 +1,51 @@
+# name: Playwright Tests
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
+
+# jobs:
+#   test:
+#     timeout-minutes: 60
+#     runs-on: ubuntu-latest
+#     steps:
+#     # Checkout repository
+#     - uses: actions/checkout@v4
+
+#     # Setup Node.js environment
+#     - uses: actions/setup-node@v4
+#       with:
+#         node-version: lts/*
+
+#     # Install dependencies
+#     - name: Install dependencies
+#       run: npm ci
+
+#     # Install Playwright browsers
+#     - name: Install Playwright Browsers
+#       run: npx playwright install --with-deps
+
+#     # Start backend server
+#     - name: Start backend server
+#       run: npm run start-backend &
+      
+#     # Wait for backend server to be ready
+#     - name: Wait for backend server
+#       run: npx wait-on http://127.0.0.1:8080
+
+#     # Run Playwright tests
+#     - name: Run Playwright tests
+#       run: npx playwright test
+
+#     # Upload Playwright report as artifact
+#     - uses: actions/upload-artifact@v4
+#       if: ${{ !cancelled() }}
+#       with:
+#         name: playwright-report
+#         path: playwright-report/
+#         retention-days: 30
+
 name: Playwright Tests
 on:
   push:
@@ -7,7 +55,7 @@ on:
 
 jobs:
   test:
-    timeout-minutes: 60
+    timeout-minutes: 90  # Tingkatkan timeout jika diperlukan
     runs-on: ubuntu-latest
     steps:
     # Checkout repository
@@ -28,11 +76,11 @@ jobs:
 
     # Start backend server
     - name: Start backend server
-      run: npm run start-backend &
-      
+      run: nohup npm run start-backend &
+
     # Wait for backend server to be ready
     - name: Wait for backend server
-      run: npx wait-on http://127.0.0.1:8080
+      run: npx wait-on http://127.0.0.1:8080 --timeout 30000
 
     # Run Playwright tests
     - name: Run Playwright tests
