@@ -1,9 +1,12 @@
 {
-  "name": "test_be",
+  "name": "qa-inotal",
   "version": "1.0.0",
   "description": "Playwright github action",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+  "test": "playwright test",
+  "start": "playwright test"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
